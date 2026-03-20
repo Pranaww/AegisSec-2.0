@@ -9,12 +9,22 @@ from typing import List, Dict, Optional
 
 
 class DeepSeekClient:
-    """Handles all communication with OpenRouter's API using deepseek/deepseek-chat-v3.1:free."""
+    """Handles all communication with OpenRouter's API with multi-model fallback."""
 
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://openrouter.ai/api/v1"
-        self.model = "deepseek/deepseek-chat-v3.1:free"
+        # Primary model + free fallback chain
+        self.models = [
+            "deepseek/deepseek-chat-v3.1",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "google/gemma-3-27b-it:free",
+            "qwen/qwen3-coder:free",
+            "mistralai/mistral-small-3.1-24b-instruct:free",
+            "nousresearch/hermes-3-llama-3.1-405b:free",
+            "qwen/qwen3-4b:free",
+        ]
+        self.active_model = self.models[0]
         self.kali_priority_tools = ["nmap", "nikto", "dirb"]
         self.extended_tools = [
             "gobuster", "sqlmap", "hydra", "metasploit",
@@ -23,38 +33,50 @@ class DeepSeekClient:
 
     def _make_api_call(self, messages: list, temperature: float = 0.7,
                        max_tokens: int = 1500, timeout: int = 30) -> Optional[str]:
-        """Makes a POST request to the OpenRouter API."""
+        """Makes a POST request, automatically trying fallback models on failure."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://aegissec.local",
             "X-Title": "AegisSec v2.0"
         }
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=timeout
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"]
-        except requests.exceptions.Timeout:
-            print("[AI] Request timed out.")
-            return None
-        except requests.exceptions.HTTPError as e:
-            print(f"[AI] HTTP error: {e}")
-            return None
-        except Exception as e:
-            print(f"[AI] Unexpected error: {e}")
-            return None
+
+        # Try each model in the fallback chain
+        for model in self.models:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            try:
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data.get("choices", [{}])[0].get("message", {}).get("content")
+                    if content:
+                        if model != self.active_model:
+                            print(f"[AI] Using fallback model: {model}")
+                            self.active_model = model
+                        return content
+                elif response.status_code in (404, 429, 503):
+                    # Model not found, rate-limited, or unavailable — try next
+                    continue
+                else:
+                    print(f"[AI] Model {model} returned {response.status_code}, trying next...")
+                    continue
+            except requests.exceptions.Timeout:
+                continue
+            except Exception:
+                continue
+
+        print("[AI] All models unavailable. Using offline fallback.")
+        return None
 
     def get_tool_recommendations(self, target: str, scan_type: str = "comprehensive") -> List[Dict]:
         """Sends structured prompt; parses JSON array of 10 tool objects."""
