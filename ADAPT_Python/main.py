@@ -1,40 +1,82 @@
-import asyncio
-from mape_k import MAPEK
-from models import Target, Attack
-from plugins.nmap_scan import NmapScan
-from knowledge_base import KnowledgeBase
+"""
+AegisSec v2.0 — Entry Point
+Application bootstrap, banner display, top-level mode routing.
+"""
 
-class DummyExploit(Attack):
-    def __init__(self):
-        super().__init__(name="Dummy_HTTP_Exploit", target_name="")
-        # Guard: Only attack if we know port 80 is open
-        self.guard = lambda kb, t: t.get_property("port_80") == "open"
+import sys
+from rich.console import Console
+from rich.panel import Panel
 
-    async def execute(self, kb: KnowledgeBase, target: Target):
-        print(f"[Apache Exploit Plugin] Attempting buffer overflow on {target.name}...")
-        await asyncio.sleep(1.5)
-        print(f"[Apache Exploit Plugin] Success! Root shell obtained on {target.name}.")
-        target.set_property("EXPLOITATION_STATE", "Escalated")
+from src.config_manager import ConfigManager
+from src.cli import AegisSecCLI
+
+console = Console()
 
 
-async def main():
-    apt_brain = MAPEK()
+def display_banner():
+    """Renders the cyan ASCII art banner in a Rich Panel."""
+    banner = """
+    ╔═══════════════════════════════════════════════════════════╗
+    ║           _    _____ ____ ___ ____  ____  _____ ____      ║
+    ║          / \\  | ____/ ___|_ _/ ___||  __)/ ____|  __|    ║
+    ║         / _ \\ |  _|| |  _ | |\\___ \\| |__ | |    | |__    ║
+    ║        / ___ \\| |__| |_| || | ___) |  __|| |____|  __|   ║
+    ║       /_/   \\_\\____\\____|___|____/|____| \\_____|____|    ║
+    ║                                                           ║
+    ║           AI-Powered Penetration Testing Platform          ║
+    ║                      Version 2.0                          ║
+    ║                   RunTime Terrors Team                     ║
+    ╚═══════════════════════════════════════════════════════════╝
+    """
+    console.print(Panel(banner, style="bold cyan", border_style="cyan",
+                         subtitle="[dim]Educational Cybersecurity Platform[/dim]"))
 
-    # Define initial environment parameters
-    t1 = Target("WebServer1")
-    t1.set_property("ip", "192.168.1.100")
-    apt_brain.kb.add_target(t1)
 
-    t2 = Target("DatabaseServer")
-    t2.set_property("ip", "192.168.1.101")
-    apt_brain.kb.add_target(t2)
+def main():
+    """Initializes ConfigManager, checks first-run, shows menu, dispatches to CLI."""
+    display_banner()
 
-    # Load repertoire plugins
-    apt_brain.kb.add_scan(NmapScan())
-    apt_brain.kb.add_attack(DummyExploit())
+    config = ConfigManager()
 
-    # Start the MAPE-K Loop
-    await apt_brain.run()
+    # First-time setup check
+    if not config.is_configured():
+        console.print("\n[bold yellow]⚙  First-time setup required![/bold yellow]\n")
+        config.setup()
+
+    cli = AegisSecCLI()
+
+    while True:
+        console.print("\n[bold cyan]═══ Main Menu ═══[/bold cyan]")
+        console.print("  [green]1.[/green] Quick Automated Scan")
+        console.print("  [green]2.[/green] AI-Guided Penetration Test")
+        console.print("  [green]3.[/green] Educational Mode (AI Mentor)")
+        console.print("  [green]4.[/green] Settings")
+        console.print("  [green]5.[/green] View Reports")
+        console.print("  [green]6.[/green] Exit")
+
+        try:
+            choice = console.input("\n[bold]Select an option (1-6): [/bold]").strip()
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[dim]Goodbye![/dim]")
+            break
+
+        if choice == "1":
+            cli.quick_scan()
+        elif choice == "2":
+            cli.run_pentest_workflow()
+        elif choice == "3":
+            cli.educational_mode()
+        elif choice == "4":
+            config.setup()
+            cli.setup_ai_client()  # Refresh AI client after settings change
+        elif choice == "5":
+            cli.view_reports()
+        elif choice == "6":
+            console.print("\n[bold cyan]Thank you for using AegisSec! Stay ethical, stay curious. 🛡️[/bold cyan]")
+            break
+        else:
+            console.print("[red]Invalid option. Please choose 1-6.[/red]")
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

@@ -1,24 +1,94 @@
-# ADAPT in Python
+# AegisSec v2.0
 
-This is a Python rewrite of the C-based ADAPT (Automated Dynamic Analysis and Penetration Testing) framework. It implements the core **MAPE-K** (Monitor, Analyze, Plan, Execute, Knowledge) autonomous loop.
+**AI-Powered Educational Penetration Testing Platform**
+*By RunTime Terrors Team*
 
-## Architecture
+---
 
-- **`models.py`:** Contains dataclasses for Targets, Scans, Attacks, and utility scoring.
-- **`knowledge_base.py`:** The central store for states and available tools.
-- **`monitor.py`:** Tracks the current status of progress and determines when the system should re-analyze.
-- **`analyzer.py`:** Computes "Utility Scores" for various targets and actions. 
-- **`planner.py`:** Chooses the highest utility plans based on system states and action guards.
-- **`executor.py`:** Asynchronously executes the chosen plans using `asyncio`.
-- **`mape_k.py`:** Wires everything together in a continuous `while` loop.
-- **`plugins/`:** Extensible scanner and attacker modules (e.g., `nmap_scan.py`).
+## Overview
 
-## How to Run
+AegisSec is an AI-powered, educational penetration testing automation platform that integrates the **DeepSeek AI model** (via OpenRouter API) with standard Kali Linux security tools to create an end-to-end guided cybersecurity learning environment.
 
-Just execute the main script using Python 3:
+## Features
+
+- **AI-Guided Scanning** — DeepSeek AI recommends and prioritizes security tools
+- **Automated Execution** — Tools run as real system processes with captured output
+- **Educational Analysis** — AI explains every tool output in plain language
+- **Multi-Format Reports** — HTML, JSON, and Markdown with AI insights embedded
+- **Interactive Mentor** — Free-form cybersecurity Q&A with AI
+- **Cross-Platform** — Windows, Linux, and Kali Linux support
+
+## Quick Start
+
+### Prerequisites
+- Python 3.10+
+- OpenRouter API key (free at [openrouter.ai](https://openrouter.ai))
+- Recommended: Kali Linux for full tool availability
+
+### Installation
 
 ```bash
+git clone https://github.com/Pranaww/AegisSec-2.0.git
+cd AegisSec-2.0/ADAPT_Python
+pip install -r requirements.txt
 python main.py
 ```
 
-The system will automatically initialize targets, scan them to find vulnerabilities, and then use the findings to launch simulated attacks!
+Or use the launcher scripts:
+
+```bash
+# Linux / Kali
+chmod +x run.sh && ./run.sh
+
+# Windows
+run.bat
+```
+
+## Project Structure
+
+```
+AegisSec/
+├── main.py                    # Entry point — banner, menu, bootstrap
+├── requirements.txt           # Python dependencies
+├── run.bat / run.sh           # One-click launchers
+├── src/
+│   ├── __init__.py
+│   ├── cli.py                 # All user-facing workflows and menus
+│   ├── deepseek_client.py     # AI engine (OpenRouter / DeepSeek)
+│   ├── automation_engine.py   # Tool executor (subprocess)
+│   ├── report_generator.py    # Report builder (HTML/JSON/MD)
+│   └── config_manager.py      # Persistent configuration
+├── test_ai.py                 # AI advisor test
+├── test_automation.py         # Automation engine test
+├── test_report.py             # Report generator test
+└── test_scan.py               # Non-interactive scan test
+```
+
+## Operation Modes
+
+| Mode | Description |
+|------|-------------|
+| 1. Quick Scan | Runs nmap + nikto + dirb automatically |
+| 2. AI-Guided Test | AI picks and ranks tools for your target |
+| 3. Educational Mode | Interactive cybersecurity Q&A with AI |
+| 4. Settings | Configure API key, output dir, preferences |
+| 5. View Reports | Browse and open saved reports |
+| 6. Exit | Clean exit |
+
+## Tool Arsenal
+
+| Tool | Category | Kali Pre-installed |
+|------|----------|-------------------|
+| nmap | Reconnaissance | ✓ |
+| nikto | Vulnerability Analysis | ✓ |
+| dirb | Enumeration | ✓ |
+| gobuster | Enumeration | ✗ |
+| sqlmap | Vulnerability Analysis | ✗ |
+| hydra | Exploitation | ✗ |
+| metasploit | Exploitation | ✗ |
+| wpscan | WordPress Scanning | ✗ |
+| john | Password Cracking | ✗ |
+
+## License
+
+For educational purposes only. Always obtain proper authorization before testing.
